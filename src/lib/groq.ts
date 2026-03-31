@@ -6,41 +6,69 @@ const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 /**
  * Helper to call Groq Chat Completions API using native fetch.
- * This removes dependency on groq-sdk, fixing module resolution errors.
  */
-export async function callGroqAPI(messages: any[], responseFormat?: { type: string }) {
+export async function callGroqAPI(
+  messages: any[],
+  responseFormat?: { type: string },
+  modelOverride?: string
+) {
   if (!GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is not configured in .env.local");
   }
 
   const payload: any = {
-    model: "llama-3.1-8b-instant",
+    model: modelOverride || "llama-3.1-8b-instant",
     messages,
     temperature: 0.1,
     stream: false,
   };
 
-  if (responseFormat) {
+  if (responseFormat && responseFormat.type === "json_object") {
     payload.response_format = responseFormat;
   }
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-    next: { revalidate: 0 },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: { message: "Unknown error" } }));
-    throw new Error(error.error?.message || `Groq API Error: ${res.statusText}`);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+      // @ts-ignore — Next.js extended fetch option
+      next: { revalidate: 0 },
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const error = await res
+        .json()
+        .catch(() => ({ error: { message: "Unknown error" } }));
+      throw new Error(
+        error.error?.message || `Groq API Error: ${res.statusText}`
+      );
+    }
+
+    const result = await res.json();
+    const rawContent: string = result.choices?.[0]?.message?.content || "";
+
+    // STRATEGIC CLEANSE: Remove common AI markdown wrapping that breaks JSON.parse
+    return rawContent
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+  } catch (err: any) {
+    if (err.name === "AbortError")
+      throw new Error("Brain Node Timeout: AI took too long to respond.");
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || "";
 }
 
 export async function generateQuizFromArticles(
@@ -48,75 +76,123 @@ export async function generateQuizFromArticles(
   count = 5,
   difficulty: "easy" | "medium" | "hard" = "medium",
   period = "week",
-  exam = "Banking"
+  exam = "Banking",
+  model = "llama-3.1-8b-instant"
 ): Promise<QuizQuestion[]> {
-  // To handle large counts (like 50), we split into batches to avoid token limits
-  // We run them sequentially with a small delay to respect Groq rate limits (RPM/TPM)
-  const batchSize = 25; 
+  // REDUCED: Stay within 6k TPM limits by processing 5 vectors at once
+  const batchSize = 5;
   const numBatches = Math.ceil(count / batchSize);
-  
-  const generateBatch = async (batchCount: number, articleSlice: NewsArticle[]) => {
-    const articleSummaries = articleSlice
-      .map((a, i) => `${i + 1}. [${a.category.toUpperCase()}] ${a.title}\n   ${a.description}`)
+
+  const generateBatch = async (
+    batchCount: number,
+    articleSlice: NewsArticle[]
+  ): Promise<any[]> => {
+    // TRUNCATE: Drastically reduce content length to bypass TPM limits
+    const articleList = articleSlice
+      .map(
+        (a, i) =>
+          `${i + 1}. [${a.category.toUpperCase()}] ${a.title}\n   ${(
+            a.content ||
+            a.description ||
+            ""
+          ).substring(0, 800)}`
+      )
       .join("\n\n");
 
-    const prompt = `You are an expert ${exam} exam current affairs question setter.
-Generate a high-quality mock test batch of exactly ${batchCount} MCQs from the given BankPrep data.
+    const prompt = `Generate exactly ${batchCount} strategic MCQs for Bank preparations:
+ARTICLES:
+${articleList}
 
-FORMAT:
-- Exactly ${batchCount} MCQs
-- Difficulty: ${difficulty}
-- Include answers + detailed explanations
-- Focus on FACTS, DATES, NAMES, and AMOUNTS.
-
-INPUT:
-${articleSummaries}
-
-Return ONLY valid JSON in this exact structure:
+Return ONLY valid JSON:
 {
   "questions": [
     {
       "question": "text",
       "options": ["A", "B", "C", "D"],
       "correctAnswer": 0,
-      "explanation": "detailed analysis",
-      "category": "banking|economy|government|general",
-      "difficulty": "${difficulty}",
-      "source": "BankPrep Intelligence"
+      "explanation": "analysis",
+      "category": "banking",
+      "difficulty": "${difficulty}"
     }
   ]
 }`;
 
     const content = await callGroqAPI(
       [{ role: "user", content: prompt }],
-      { type: "json_object" }
+      { type: "json_object" },
+      model
     );
 
     try {
+      // PHASE 1: Attempt standard JSON parsing
       const data = JSON.parse(content);
-      const qs = data.questions || Object.values(data)[0] || [];
-      return Array.isArray(qs) ? qs : [];
+      const questionsArray: any[] = Array.isArray(data)
+        ? data
+        : data.questions ||
+        data.quiz ||
+        data.assessment ||
+        (Object.values(data).find((v) => Array.isArray(v)) as any[]) ||
+        [];
+
+      if (Array.isArray(questionsArray) && questionsArray.length > 0)
+        return questionsArray;
     } catch (e) {
-      console.error("Batch Parse Error:", e);
+      console.warn(
+        "Standard JSON Parsing failed, attempting Strategic Vector Recovery..."
+      );
+    }
+
+    // PHASE 2: STRATEGIC RECOVERY — Extract valid question objects from truncated/malformed text
+    try {
+      const questions: any[] = [];
+      const questionRegex =
+        /\{[\s\S]*?"question"[\s\S]*?"options"[\s\S]*?"correctAnswer"[\s\S]*?\}/g;
+      const matches = content.match(questionRegex);
+
+      if (matches) {
+        for (const m of matches) {
+          try {
+            let candidate = m.trim();
+            if (!candidate.endsWith("}")) candidate += "}";
+            const q = JSON.parse(candidate);
+            if (q.question && q.options) questions.push(q);
+          } catch (_err) {
+            /* Skip individual malformed fragments */
+          }
+        }
+      }
+      return questions;
+    } catch (err) {
+      console.error("Critical Assessment Decypher Failure:", err);
       return [];
     }
   };
 
   const allQuestions: any[] = [];
+
   for (let i = 0; i < numBatches; i++) {
     const needed = Math.min(batchSize, count - allQuestions.length);
     if (needed <= 0) break;
 
-    // Shift articles so each batch sees different intelligence
     const start = (i * 8) % articles.length;
     const slice = articles.slice(start, start + 12);
-    
-    const batchResult = await generateBatch(needed, slice);
-    allQuestions.push(...batchResult);
 
-    // Small sequential delay to stabilize the intelligence line
+    // RESILIENCE UPGRADE: Catch individual batch failures so the whole test doesn't crash
+    try {
+      const batchResult = await generateBatch(needed, slice);
+      if (batchResult && batchResult.length > 0) {
+        allQuestions.push(...batchResult);
+      }
+    } catch (e) {
+      console.warn(
+        `Strategic Batch ${i + 1} failed to initialize, continuing...`,
+        e
+      );
+    }
+
     if (i < numBatches - 1) {
-      await new Promise(r => setTimeout(r, 600));
+      // INCREASED: 2.5s for maximum TPM & RPM stability
+      await new Promise((r) => setTimeout(r, 2500));
     }
   }
 
@@ -131,110 +207,53 @@ export async function generateCurrentAffairsDigest(
   period: "day" | "week" | "month" = "day"
 ): Promise<CurrentAffairsDigest> {
   const articleList = articles
-    .slice(0, 15)
-    .map((a) => `- [${a.category}] ${a.title}: ${a.description}`)
+    .slice(0, 40)
+    .map((a, i) => `${i + 1}. ${a.title}: ${a.description}`)
     .join("\n");
+  const today = new Date().toLocaleDateString();
 
-  const today = new Date().toISOString().split("T")[0];
-  const periodLabel = period === "day" ? "Daily" : period === "week" ? "Weekly" : "Monthly";
-
-  const prompt = `Analyze these recent Indian news articles and create a structured ${periodLabel} digest for bank exam preparation.
-
+  const prompt = `Generate a high-level BankPrep Intelligence Digest.
 ARTICLES:
 ${articleList}
 
 Return ONLY valid JSON:
 {
   "date": "${today}",
-  "summary": "overview of the ${periodLabel.toLowerCase()} current affairs",
-  "topStories": [
-    {
-      "headline": "headline",
-      "detail": "detail",
-      "importance": "critical|important|informational",
-      "examAngle": "why it matters"
-    }
-  ],
-  "bankingUpdates": ["string 1", "string 2"],
-  "economyHighlights": ["string 1", "string 2"],
-  "internationalNews": ["string 1", "string 2"],
-  "appointments": ["string 1", "string 2"],
-  "awardsRecognitions": ["string 1", "string 2"]
-}
-
-CRITICAL: bankingUpdates, economyHighlights, internationalNews, appointments, and awardsRecognitions MUST be arrays of SIMPLE STRINGS, not objects.`;
+  "summary": "strategic overview",
+  "topStories": [{ "headline": "text", "detail": "text", "importance": "critical", "examAngle": "text" }],
+  "bankingUpdates": ["text 1"],
+  "economyHighlights": ["text 1"],
+  "internationalNews": ["text 1"],
+  "appointments": ["text 1"],
+  "awardsRecognitions": ["text 1"]
+}`;
 
   const content = await callGroqAPI(
     [{ role: "user", content: prompt }],
     { type: "json_object" }
   );
-
-  const digest = JSON.parse(content);
-
-  // Normalization to prevent React child errors if AI returns objects instead of strings
-  const normalize = (arr: any) => {
-    if (!Array.isArray(arr)) return [];
-    return arr.map(item => {
-      if (typeof item === 'string') return item;
-      if (typeof item === 'object' && item !== null) {
-        return item.update || item.detail || item.text || JSON.stringify(item);
-      }
-      return String(item);
-    });
-  };
-
-  return {
-    ...digest,
-    bankingUpdates: normalize(digest.bankingUpdates),
-    economyHighlights: normalize(digest.economyHighlights),
-    internationalNews: normalize(digest.internationalNews),
-    appointments: normalize(digest.appointments),
-    awardsRecognitions: normalize(digest.awardsRecognitions),
-  } as CurrentAffairsDigest;
+  return JSON.parse(content) as CurrentAffairsDigest;
 }
 
-export async function generateArticleKeyPoints(article: NewsArticle): Promise<string[]> {
-  const prompt = `Extract 4-5 key exam-relevant bullet points from this news article.
+export async function generateArticleKeyPoints(
+  article: NewsArticle
+): Promise<string[]> {
+  const prompt = `Extract 4-5 key exam-relevant bullet points.
 Title: ${article.title}
 Content: ${article.content || article.description}
 
-Return ONLY valid JSON in this exact structure:
-{
-  "points": ["point 1", "point 2", "point 3"]
-}`;
+Return ONLY valid JSON: { "points": ["point 1", "point 2", "point 3"] }`;
 
   const content = await callGroqAPI(
     [{ role: "user", content: prompt }],
     { type: "json_object" }
   );
-
   try {
     const data = JSON.parse(content);
-    return Array.isArray(data) ? data : data.points || [];
+    return data.points || [];
   } catch {
-    return ["Could not extract key points."];
+    return ["Could not extract points."];
   }
-}
-
-export async function analyzeUserQuery(query: string): Promise<AIAnalysisResponse> {
-  const prompt = `You are a high-level current affairs analyst for Indian bank exams.
-Analyze the following interrogation query and provide a structured intelligence report.
-Query: ${query}
-
-Return ONLY valid JSON in this format:
-{
-  "summary": "one-sentence strategic overview",
-  "keyPoints": ["point 1", "point 2", "point 3", "point 4"],
-  "implications": "deep assessment of financial/regulatory impact",
-  "references": ["BankPrep Intelligence", "RBI Bulletin", "Source X", ...]
-}`;
-
-  const content = await callGroqAPI(
-    [{ role: "user", content: prompt }],
-    { type: "json_object" }
-  );
-
-  return JSON.parse(content) as AIAnalysisResponse;
 }
 
 export async function askCurrentAffairsQuestion(
@@ -242,15 +261,26 @@ export async function askCurrentAffairsQuestion(
   context?: string
 ): Promise<string> {
   const content = await callGroqAPI([
-    {
-      role: "system",
-      content: "You are an expert current affairs tutor for Indian bank exams. Answer concisely.",
-    },
+    { role: "system", content: "You are an expert tutor. Answer concisely." },
     {
       role: "user",
-      content: context ? `Context: ${context}\n\nQuestion: ${question}` : question,
+      content: context
+        ? `Context: ${context}\n\nQuestion: ${question}`
+        : question,
     },
   ]);
-
   return content;
+}
+
+/**
+ * STRATEGIC ANALYSIS VECTOR: Analyzes user queries for the Chat interface
+ */
+export async function analyzeUserQuery(query: string): Promise<string> {
+  const prompt = `System: Expert BankPrep Intelligence Assistant.
+Analytic Requirement: Dissect the user's inquiry about current affairs or banking exams.
+Inquiry: ${query}
+
+Response Directive: Provide an executive summary with high-yield pointers. Keep the tone professional and strategic.`;
+
+  return await callGroqAPI([{ role: "user", content: prompt }]);
 }
