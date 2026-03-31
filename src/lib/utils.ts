@@ -7,7 +7,7 @@
  */
 export function cn(...inputs: any[]) {
   const classes: string[] = [];
-  
+
   const flatten = (arr: any[]) => {
     for (const item of arr) {
       if (!item) continue;
@@ -60,12 +60,11 @@ export const CATEGORY_CONFIG: Record<string, { label: string; emoji: string }> =
   sports: { label: "Sports News", emoji: "🏏" },
   appointments: { label: "Appointments", emoji: "👤" },
   general: { label: "General News", emoji: "📋" },
-};
-
-export const CATEGORY_LABELS: Record<string, string> = Object.entries(CATEGORY_CONFIG).reduce((acc, [key, val]) => ({
+};export const CATEGORY_LABELS: Record<string, string> = Object.entries(CATEGORY_CONFIG).reduce((acc, [key, val]) => ({
   ...acc,
   [key]: val.label
 }), {});
+
 
 export function timeAgo(date: string | Date): string {
   const now = new Date();
@@ -76,6 +75,6 @@ export function timeAgo(date: string | Date): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  
+
   return then.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }

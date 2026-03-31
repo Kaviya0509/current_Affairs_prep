@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { NewsArticle, QuizQuestion } from "@/types";
 import { CATEGORY_CONFIG, timeAgo } from "@/lib/utils";
-import { X, ExternalLink, Calendar, Tag, Brain, Play, CheckCircle2, ChevronRight, Zap, ShieldCheck } from "lucide-react";
+import { X, ExternalLink, Calendar, Tag, Brain, Play, CheckCircle2, ChevronRight, Zap, ShieldCheck, Forward } from "lucide-react";
 
 interface Props {
   article: NewsArticle;
@@ -30,6 +30,7 @@ export default function NewsCard({ article, compact }: Props) {
   // Quiz Interaction State
   const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
   // Pick a stable color based on article ID
   const colorIdx = article.id ? (article.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % ACCENT_COLORS.length) : 0;
@@ -135,7 +136,7 @@ export default function NewsCard({ article, compact }: Props) {
           
           <div className="relative z-10 w-full max-w-2xl h-[95vh] mt-[2.5vh] md:h-screen md:mt-0 bg-white shadow-2xl flex flex-col overflow-hidden animate-slide-in-right md:rounded-l-[40px]">
             {/* Header Module */}
-            <div className="p-8 md:p-12 border-b border-slate-50 bg-white sticky top-0 z-10">
+            <div className="p-6 md:p-12 border-b border-slate-50 bg-white sticky top-0 z-10">
               <div className="flex justify-between items-start mb-8 text-slate-400">
                 <button onClick={() => setOpen(false)} className="group flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] hover:text-slate-950 transition-colors">
                    <X size={16} /> Close Terminal
@@ -161,10 +162,10 @@ export default function NewsCard({ article, compact }: Props) {
             </div>
 
             {/* Scrollable Intelligence Stream */}
-            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12 bg-slate-50/20">
+            <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-12 bg-slate-50/20">
               {/* AI Strategic Analysis Button */}
               {!keyPoints && !analyzing && (
-                <div className="p-10 rounded-[32px] bg-slate-900 text-white relative overflow-hidden group/cta cursor-pointer" onClick={handleAnalyze}>
+                <div className="p-8 sm:p-10 rounded-[32px] bg-slate-900 text-white relative overflow-hidden group/cta cursor-pointer" onClick={handleAnalyze}>
                    <div className="relative z-10">
                       <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6 border border-white/10">
                          <Brain size={24} className="text-white" />
@@ -211,76 +212,115 @@ export default function NewsCard({ article, compact }: Props) {
 
               {quiz && (
                  <div className="space-y-8 pb-20 animate-fade-up">
-                    <div className="border-b border-slate-200 pb-4">
+                    <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
                           <Zap size={18} className="text-amber-500 fill-amber-500" /> Assessment Module
                        </h3>
+                       <span className="text-[11px] font-black text-slate-400">
+                         Node {currentStep + 1} / {quiz.length}
+                       </span>
                     </div>
-                    {quiz.map((q, qidx) => (
-                       <div key={qidx} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-                          <p className="text-lg font-black text-slate-900 mb-8 leading-tight">{q.question}</p>
-                          <div className="grid grid-cols-1 gap-3">
-                             {q.options.map((opt, oidx) => {
-                                const isSelected = userAnswers[qidx] === oidx;
-                                const isCorrect = showResults && q.correctAnswer === oidx;
-                                const isWrong = showResults && isSelected && !isCorrect;
-                                return (
-                                   <button 
-                                      key={oidx}
-                                      disabled={showResults}
-                                      onClick={() => setUserAnswers(prev => ({ ...prev, [qidx]: oidx }))}
-                                      className={`p-5 text-left rounded-2xl border-2 transition-all font-bold text-[14px] flex items-center gap-4 ${
-                                         isCorrect ? "bg-emerald-50 border-emerald-500 text-emerald-900" :
-                                         isWrong ? "bg-rose-50 border-rose-500 text-rose-900" :
-                                         isSelected ? "bg-slate-950 border-slate-950 text-white" :
-                                         "bg-slate-50 border-transparent text-slate-600 hover:border-slate-300"
-                                      }`}
-                                   >
-                                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black border-2 ${
-                                         isSelected ? "bg-white/20 border-white/30" : "bg-white border-slate-100"
-                                      }`}>
-                                         {String.fromCharCode(65+oidx)}
-                                      </span>
-                                      {opt}
-                                   </button>
-                                );
-                             })}
-                          </div>
-                          {showResults && (
-                             <div className="mt-8 p-6 bg-slate-50 rounded-2xl border-l-4 border-slate-900">
-                                <p className="text-[10px] font-black uppercase tracking-widest mb-2">Dossier Explanation</p>
-                                <p className="text-[13px] font-medium text-slate-600 leading-relaxed">{q.explanation}</p>
-                             </div>
-                          )}
+
+                    {(() => {
+                        const q = quiz[currentStep];
+                        const qidx = currentStep;
+                        return (
+                           <div key={qidx} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm animate-fade-up">
+                              <p className="text-lg font-black text-slate-900 mb-8 leading-tight">{q.question}</p>
+                              <div className="grid grid-cols-1 gap-3">
+                                 {q.options.map((opt, oidx) => {
+                                    const isSelected = userAnswers[qidx] === oidx;
+                                    const isCorrect = showResults && q.correctAnswer === oidx;
+                                    const isWrong = showResults && isSelected && !isCorrect;
+                                    return (
+                                       <button 
+                                          key={oidx}
+                                          disabled={showResults}
+                                          onClick={() => setUserAnswers(prev => ({ ...prev, [qidx]: oidx }))}
+                                          className={`p-4 sm:p-5 text-left rounded-2xl border-2 transition-all font-bold text-[13px] sm:text-[14px] flex items-start gap-4 ${
+                                             isCorrect ? "bg-emerald-50 border-emerald-500 text-emerald-900" :
+                                             isWrong ? "bg-rose-50 border-rose-500 text-rose-900" :
+                                             isSelected ? "bg-slate-950 border-slate-950 text-white" :
+                                             "bg-slate-50 border-transparent text-slate-600 hover:border-slate-300"
+                                          }`}
+                                       >
+                                          <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-[10px] sm:text-[11px] font-black border-2 flex-shrink-0 mt-0.5 ${
+                                             isSelected ? "bg-white/20 border-white/30" : "bg-white border-slate-100"
+                                          }`}>
+                                             {String.fromCharCode(65+oidx)}
+                                          </span>
+                                          <span className="pt-0.5">{opt}</span>
+                                       </button>
+                                    );
+                                 })}
+                              </div>
+                              {showResults && (
+                                 <div className="mt-8 p-6 bg-slate-50 rounded-2xl border-l-4 border-slate-900">
+                                    <p className="text-[10px] font-black uppercase tracking-widest mb-2">Dossier Explanation</p>
+                                    <p className="text-[13px] font-medium text-slate-600 leading-relaxed">{q.explanation}</p>
+                                 </div>
+                              )}
+                           </div>
+                        );
+                    })()}
+
+                    {!showResults ? (
+                       <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                          <button 
+                            onClick={() => {
+                              if (currentStep + 1 < (quiz || []).length) setCurrentStep(c => c + 1);
+                              else setShowResults(true);
+                            }}
+                            className="flex-1 py-5 bg-white border border-slate-200 text-slate-400 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:border-slate-800 hover:text-slate-900 transition-all flex items-center justify-center gap-2 group"
+                          >
+                             <Forward size={14} className="opacity-50 group-hover:translate-x-1 transition-transform" />
+                             Skip Node
+                          </button>
+                          <button 
+                             onClick={() => {
+                               if (currentStep + 1 < (quiz || []).length) setCurrentStep(c => c + 1);
+                               else setShowResults(true);
+                             }}
+                             disabled={userAnswers[currentStep] === undefined}
+                             className="flex-[2] py-5 bg-slate-900 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-slate-800 disabled:opacity-30 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group"
+                          >
+                             {currentStep + 1 < (quiz || []).length ? "Next Node" : "Finalize Report"}
+                             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                          </button>
                        </div>
-                    ))}
-                    {!showResults && (
-                       <button 
-                          onClick={handleQuizSubmit}
-                          disabled={Object.keys(userAnswers).length < quiz.length}
-                          className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] hover:bg-slate-800 disabled:opacity-30 transition-all shadow-xl"
-                       >
-                          Finalize Terminal Report
-                       </button>
+                    ) : (
+                       <div className="text-center p-8 bg-slate-900 text-white rounded-[32px] border border-slate-800 shadow-2xl relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Assessment Complete</p>
+                          <p className="text-4xl font-black text-white mb-8 tracking-tighter">
+                            Score: <span className="text-sky-400">{Object.keys(userAnswers).filter(k => userAnswers[parseInt(k)] === (quiz || [])[parseInt(k)].correctAnswer).length}</span> <span className="text-slate-700">/</span> {(quiz || []).length}
+                          </p>
+                          <button 
+                             onClick={() => { setShowResults(false); setUserAnswers({}); setCurrentStep(0); }}
+                             className="w-full py-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all"
+                          >
+                             Re-run Assessment
+                          </button>
+                       </div>
                     )}
                  </div>
               )}
 
               {/* Original Document Section */}
-              <div className="bg-white p-8 md:p-12 rounded-[40px] border border-slate-100 space-y-6">
+              <div className="bg-white p-6 sm:p-8 md:p-12 rounded-[32px] md:rounded-[40px] border border-slate-100 space-y-6">
                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">Primary Intelligence Brief</p>
                  <div className="prose prose-slate max-w-none">
                     {article.content ? (
-                      <div className="text-slate-600 font-medium leading-relaxed text-lg" dangerouslySetInnerHTML={{ __html: article.content }} />
+                      <div className="text-slate-600 font-medium leading-relaxed text-[15px] sm:text-lg" dangerouslySetInnerHTML={{ __html: article.content }} />
                     ) : (
-                      <p className="text-slate-600 font-medium leading-relaxed text-lg">{article.description}</p>
+                      <p className="text-slate-600 font-medium leading-relaxed text-[15px] sm:text-lg">{article.description}</p>
                     )}
                  </div>
               </div>
             </div>
 
             {/* Sticky Action Footer */}
-            <div className="p-8 border-t border-slate-50 bg-white/80 backdrop-blur-md flex gap-4">
+            <div className="p-6 md:p-8 border-t border-slate-50 bg-white/80 backdrop-blur-md flex gap-4">
               <a href={article.url} target="_blank" className="flex-1 h-14 bg-slate-950 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-[12px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl">
                  Read Primary Source <ExternalLink size={16} />
               </a>

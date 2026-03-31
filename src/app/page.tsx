@@ -59,7 +59,11 @@ export default function DashboardPage() {
           animation: gradient-shift 10s ease infinite;
           border-radius: 24px; padding: 24px; display: flex; align-items: center; justify-content: space-between;
           color: #fff; border: none; box-shadow: 0 15px 35px rgba(56,189,248,0.2);
-          position: relative; overflow: hidden;
+          position: relative; overflow: hidden; gap: 20px;
+        }
+        @media (max-width: 640px) {
+          .mega-test-banner { flex-direction: column; align-items: flex-start; text-align: left; }
+          .mega-test-banner a { width: 100%; text-align: center; }
         }
         @keyframes gradient-shift {
           0% { background-position: 0% 50%; }
@@ -104,7 +108,7 @@ export default function DashboardPage() {
             <Brain size={18} className="text-white" />
             <span className="text-[9px] font-black uppercase tracking-[3px] text-white/80">Mega Assessment Module</span>
           </div>
-          <h2 className="text-xl font-black text-white tracking-tighter">Initialize Terminal Test</h2>
+          <h2 className="text-[18px] sm:text-lg md:text-xl font-black text-white tracking-tighter leading-tight break-words">Initialize Terminal Test</h2>
         </div>
         <Link href="/news?startTest=true" className="relative z-10 px-6 py-3 bg-white text-slate-950 rounded-xl font-black text-[10px] uppercase tracking-[2px] transition-all hover:scale-105 active:scale-95 shadow-lg">
           Start Mega Test
@@ -169,10 +173,10 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-lg font-black mb-3">Executive Digest</h3>
               {loading ? (
-                 <div className="space-y-2">
-                   <div className="h-3 bg-white/5 rounded-full animate-pulse w-full" />
-                   <div className="h-3 bg-white/5 rounded-full animate-pulse w-[80%]" />
-                 </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-white/5 rounded-full animate-pulse w-full" />
+                  <div className="h-3 bg-white/5 rounded-full animate-pulse w-[80%]" />
+                </div>
               ) : digest ? (
                 <div className="space-y-4">
                   <p className="text-slate-400 text-xs leading-relaxed font-medium line-clamp-3">{digest.summary}</p>

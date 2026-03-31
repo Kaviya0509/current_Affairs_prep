@@ -2,8 +2,7 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { NewsArticle, NewsCategory, QuizQuestion } from "@/types";
-import { Brain, Play, CheckCircle2, X, MessageCircle, Send, Sparkles, Loader2, ChevronRight } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { Brain, Play, CheckCircle2, X, Sparkles, Loader2, ChevronRight, Forward } from "lucide-react";
 
 import "./news.css";
 
@@ -53,6 +52,7 @@ function NewsContent() {
   const [quizError, setQuizError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
+  const [currentQuizStep, setCurrentQuizStep] = useState(0);
 
   // Full Test States
   const [showFullTestModal, setShowFullTestModal] = useState(false);
@@ -61,12 +61,9 @@ function NewsContent() {
   const [fullTestAnswers, setFullTestAnswers] = useState<Record<number, number>>({});
   const [showFullResults, setShowFullResults] = useState(false);
   const [fullTestError, setFullTestError] = useState<string | null>(null);
+  const [currentFullTestStep, setCurrentFullTestStep] = useState(0);
 
-  // Chat States
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<{ role: string, content: string }[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
+
 
   const openArticle = (a: NewsArticle) => {
     setSelectedArticle(a);
@@ -75,6 +72,7 @@ function NewsContent() {
     setShowResults(false);
     setUserAnswers({});
     setQuizError(null);
+    setCurrentQuizStep(0);
   };
 
   const closeArticle = () => {
@@ -122,28 +120,7 @@ function NewsContent() {
     }
   };
 
-  const handleChat = async (overrideMsg?: string) => {
-    const messageToSend = overrideMsg || chatInput;
-    if (!messageToSend.trim() || chatLoading) return;
-    const userMsg = messageToSend.trim();
-    setChatInput("");
-    setChatHistory(prev => [...prev, { role: "user", content: userMsg }]);
-    setChatLoading(true);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg, history: chatHistory.slice(-4) })
-      });
-      if (!res.ok) throw new Error("Connection failed.");
-      const data = await res.json();
-      setChatHistory(prev => [...prev, { role: "assistant", content: data.response }]);
-    } catch (e) {
-      setChatHistory(prev => [...prev, { role: "assistant", content: "📡 Connection unstable. Unable to reach intelligence node." }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
+
 
   async function load() {
     try {
@@ -162,10 +139,13 @@ function NewsContent() {
 
   useEffect(() => { load(); }, [category, period]);
 
+  const hasAutoStarted = React.useRef(false);
+
   useEffect(() => {
     // Check if we should auto-start the test from query param
     const autoStart = searchParams.get("startTest") === "true";
-    if (autoStart && !loading && articles.length > 0) {
+    if (autoStart && !loading && articles.length > 0 && !hasAutoStarted.current) {
+      hasAutoStarted.current = true;
       setShowFullTestModal(true);
     }
   }, [searchParams, loading, articles.length]);
@@ -208,10 +188,10 @@ function NewsContent() {
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-[4px] text-white/80">CBT Protocol 7.9</span>
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tighter mb-1">
+              <h2 className="text-[18px] sm:text-[20px] md:text-2xl font-black text-white tracking-tighter mb-1 leading-tight break-words">
                 {period === 'day' ? 'Today\'s' : period === 'week' ? 'Weekly' : 'Monthly'} Mega Intelligence Assessment
               </h2>
-              <p className="text-white/70 text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+              <p className="text-white/80 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
                 Synthesis of {filtered.length} {period === 'day' ? 'daily' : period === 'week' ? 'weekly' : 'monthly'} briefings into 50 strategic MCQ vectors.
               </p>
             </div>
@@ -325,11 +305,11 @@ function NewsContent() {
 
             <div className="p-6 md:p-8">
               {!keyPoints && !analyzing && (
-                <div className="py-10 px-8 rounded-[32px] bg-sky-600/5 border border-sky-400/20 text-center">
+                <div className="py-8 sm:py-10 px-5 sm:px-8 rounded-[24px] sm:rounded-[32px] bg-sky-600/5 border border-sky-400/20 text-center">
                   <Brain size={44} className="text-sky-500 mx-auto mb-6 shadow-sky-500/20" />
-                  <h3 className="text-white font-black text-[22px] md:text-[24px] mb-3 tracking-tighter">Deep Intelligence Analysis</h3>
-                  <p className="text-slate-400 font-medium text-[14px] mb-8 max-w-md mx-auto leading-relaxed">Let our AI dissect this report, identify core exam pointers, and build high-fidelity assessment vectors for you.</p>
-                  <button onClick={handleAnalyze} className="px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-black text-[13px] uppercase tracking-[3px] transition-all shadow-xl shadow-sky-600/20">
+                  <h3 className="text-white font-black text-[20px] md:text-[24px] mb-3 tracking-tighter">Deep Intelligence Analysis</h3>
+                  <p className="text-slate-400 font-medium text-[13px] md:text-[14px] mb-8 max-w-md mx-auto leading-relaxed">Let our AI dissect this report, identify core exam pointers, and build high-fidelity assessment vectors for you.</p>
+                  <button onClick={handleAnalyze} className="w-full sm:w-auto px-6 sm:px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-black text-[12px] sm:text-[13px] uppercase tracking-[2px] sm:tracking-[3px] transition-all shadow-xl shadow-sky-600/20">
                     Dissect Report
                   </button>
                   {quizError && <p className="text-red-400 mt-6 text-[12px] font-bold bg-red-950/20 p-4 rounded-xl border border-red-900/40">{quizError}</p>}
@@ -359,84 +339,105 @@ function NewsContent() {
                   </ul>
                 </div>
               )}
-
               {quiz && (
                 <div className="p-6 md:p-8 bg-slate-800/40 border border-sky-500/10 rounded-[32px] relative overflow-hidden animate-fade-up">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-sky-600/5 rounded-full blur-[80px] pointer-events-none" />
-                  <h3 className="text-white font-black text-[16px] md:text-[18px] uppercase tracking-[2px] mb-1 flex items-center gap-3 relative z-10">
-                    <Brain size={20} className="text-sky-500" /> Dossier Assessment
-                  </h3>
+                  <div className="flex justify-between items-start mb-1 relative z-10">
+                    <h3 className="text-white font-black text-[16px] md:text-[18px] uppercase tracking-[2px] flex items-center gap-3">
+                      <Brain size={20} className="text-sky-500" /> Dossier Assessment
+                    </h3>
+                    <span className="text-sky-500 font-black text-[14px]">
+                      {currentQuizStep + 1} / {quiz.length}
+                    </span>
+                  </div>
                   <p className="text-slate-500 mb-8 text-[11px] font-black uppercase tracking-widest relative z-10">Neural Fidelity Validation</p>
 
-                  <div className="space-y-12 relative z-10">
-                    {quiz.map((q, qIndex) => (
-                      <div key={qIndex} className="animate-fade-up" style={{ animationDelay: `${qIndex * 0.1}s` }}>
-                        <p className="text-white font-black text-[14px] md:text-[16px] leading-snug mb-5">
-                          <span className="text-sky-500 mr-2">QUEST {qIndex + 1}:</span> {q.question}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {q.options.map((opt, oIndex) => {
-                            const isSelected = userAnswers[qIndex] === oIndex;
-                            const isCorrect = showResults && q.correctAnswer === oIndex;
-                            const isWrong = showResults && isSelected && !isCorrect;
+                  <div className="relative z-10">
+                    {(() => {
+                      const q = quiz[currentQuizStep];
+                      const qIndex = currentQuizStep;
+                      return (
+                        <div className="animate-fade-up">
+                          <p className="text-white font-black text-[14px] md:text-[16px] leading-snug mb-5">
+                            <span className="text-sky-500 mr-2">QUEST {qIndex + 1}:</span> {q.question}
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {q.options.map((opt, oIndex) => {
+                              const isSelected = userAnswers[qIndex] === oIndex;
+                              const isCorrect = showResults && q.correctAnswer === oIndex;
+                              const isWrong = showResults && isSelected && !isCorrect;
 
-                            return (
-                              <button
-                                key={oIndex}
-                                disabled={showResults}
-                                onClick={() => setUserAnswers(prev => ({ ...prev, [qIndex]: oIndex }))}
-                                className={`w-full text-left p-4 md:p-5 rounded-xl border transition-all group ${isCorrect ? "bg-emerald-950/40 border-emerald-500 text-emerald-100 ring-4 ring-emerald-600/10"
-                                  : isWrong ? "bg-red-950/40 border-red-500 text-red-100 ring-4 ring-red-600/10"
-                                    : isSelected ? "bg-sky-600 border-sky-400 text-white shadow-lg"
-                                      : "bg-slate-900/50 border-slate-700/50 text-slate-400 hover:border-sky-500/50 hover:bg-slate-800"
-                                  }`}
-                              >
-                                <span className={`inline-block mr-3 w-6 h-6 text-center leading-6 rounded-md text-[10px] font-black ${isSelected ? "bg-white/20 text-white" : "bg-slate-800 text-slate-500 group-hover:text-sky-400"
-                                  }`}>{["A", "B", "C", "D"][oIndex]}</span>
-                                <span className="font-bold text-[13px] md:text-[14px]">{opt}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                        {showResults && (
-                          <div className={`mt-5 p-5 rounded-2xl text-[13px] md:text-[14px] border-l-4 ${userAnswers[qIndex] === q.correctAnswer ? "bg-emerald-950/30 border-emerald-500 text-emerald-100" : "bg-red-950/30 border-red-500 text-red-100"}`}>
-                            <p className="font-black uppercase tracking-[2px] text-[9px] mb-2 opacity-60">Strategic Context</p>
-                            <span className="font-medium leading-relaxed">{q.explanation}</span>
+                              return (
+                                <button
+                                  key={oIndex}
+                                  disabled={showResults}
+                                  onClick={() => setUserAnswers(prev => ({ ...prev, [qIndex]: oIndex }))}
+                                  className={`w-full text-left p-4 md:p-5 rounded-xl border transition-all group ${isCorrect ? "bg-emerald-950/40 border-emerald-500 text-emerald-100 ring-4 ring-emerald-600/10"
+                                    : isWrong ? "bg-red-950/40 border-red-500 text-red-100 ring-4 ring-red-600/10"
+                                      : isSelected ? "bg-sky-600 border-sky-400 text-white shadow-lg"
+                                        : "bg-slate-900/50 border-slate-700/50 text-slate-400 hover:border-sky-500/50 hover:bg-slate-800"
+                                    }`}
+                                >
+                                  <span className={`inline-block mr-3 w-6 h-6 text-center leading-6 rounded-md text-[10px] font-black ${isSelected ? "bg-white/20 text-white" : "bg-slate-800 text-slate-500 group-hover:text-sky-400"
+                                    }`}>{["A", "B", "C", "D"][oIndex]}</span>
+                                  <span className="font-bold text-[13px] md:text-[14px]">{opt}</span>
+                                </button>
+                              )
+                            })}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {showResults && (
+                            <div className={`mt-5 p-5 rounded-2xl text-[13px] md:text-[14px] border-l-4 ${userAnswers[qIndex] === q.correctAnswer ? "bg-emerald-950/30 border-emerald-500 text-emerald-100" : "bg-red-950/30 border-red-500 text-red-100"}`}>
+                              <p className="font-black uppercase tracking-[2px] text-[9px] mb-2 opacity-60">Strategic Context</p>
+                              <span className="font-medium leading-relaxed">{q.explanation}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {!showResults ? (
-                    <div className="flex flex-col gap-4 mt-12 relative z-10">
+                    <div className="flex flex-col sm:flex-row items-center gap-5 mt-14 relative z-10">
                       <button
-                        onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setShowResults(true); }}
-                        disabled={Object.keys(userAnswers).length < quiz.length}
-                        className="w-full py-4 rounded-xl font-black uppercase tracking-[3px] text-[12px] text-white transition-all shadow-xl disabled:opacity-40 disabled:cursor-not-allowed bg-sky-600 hover:bg-sky-500"
+                        onClick={() => {
+                          if (currentQuizStep + 1 < (quiz || []).length) {
+                            setCurrentQuizStep(c => c + 1);
+                          } else {
+                            setShowResults(true);
+                          }
+                        }}
+                        className="w-full sm:w-auto px-10 py-5 rounded-2xl font-black uppercase tracking-[2px] text-[11px] text-slate-400 border-2 border-slate-700/50 bg-transparent hover:border-sky-500/50 hover:text-white transition-all flex items-center justify-center gap-3 group"
                       >
-                        {Object.keys(userAnswers).length < quiz.length ? `Resolve ${quiz.length - Object.keys(userAnswers).length} more to submit` : "Submit Dossier Assessment"}
+                        <Forward size={16} className="opacity-50 group-hover:translate-x-1 transition-transform" />
+                        Skip Node
                       </button>
-
                       <button
-                        onClick={handleLoadMoreQuiz}
-                        disabled={analyzing}
-                        className="w-full py-4 rounded-xl font-black uppercase tracking-[2px] text-[11px] text-slate-400 border border-slate-700 bg-slate-950/40 hover:bg-slate-900 transition-all"
+                        onClick={() => {
+                          if (currentQuizStep + 1 < (quiz || []).length) {
+                            setCurrentQuizStep(c => c + 1);
+                          } else {
+                            setShowResults(true);
+                          }
+                        }}
+                        disabled={userAnswers[currentQuizStep] === undefined}
+                        className="flex-1 w-full py-5 rounded-2xl font-black uppercase tracking-[3px] text-[12px] text-white transition-all shadow-2xl shadow-sky-900/20 disabled:opacity-30 disabled:cursor-not-allowed bg-sky-600 hover:bg-sky-500 border-none flex items-center justify-center gap-3 group"
                       >
-                        {analyzing ? 'HARVESTING DATA...' : 'REINFORCE WITH MORE QUESTIONS (+)'}
+                        {currentQuizStep + 1 < (quiz || []).length ? "Next Node" : "Finalize Report"}
+                        <ChevronRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
                       </button>
                     </div>
                   ) : (
-                    <div className="mt-12 p-8 border border-slate-700 rounded-3xl bg-slate-950/60 text-center relative z-10 flex flex-col gap-4">
-                      <div className="text-slate-500 font-black text-[11px] uppercase tracking-[4px]">Mission Report</div>
-                      <p className="font-black text-[36px] text-white tracking-tighter">
-                        {Object.keys(userAnswers).filter(k => userAnswers[parseInt(k)] === quiz[parseInt(k)].correctAnswer).length} <span className="text-slate-600">/</span> {quiz.length}
+                    <div className="mt-14 p-10 border border-slate-700 rounded-[40px] bg-slate-950/60 text-center relative z-10 flex flex-col gap-6 shadow-2xl">
+                      <div className="absolute inset-0 bg-sky-600/5 blur-3xl rounded-full pointer-events-none" />
+                      <div className="text-slate-500 font-black text-[10px] uppercase tracking-[5px]">Neural Proficiency Report</div>
+                      <p className="font-black text-[48px] text-white tracking-tighter">
+                        <span className="text-sky-500">{Object.keys(userAnswers).filter(k => userAnswers[parseInt(k)] === (quiz || [])[parseInt(k)].correctAnswer).length}</span> <span className="text-slate-700">/</span> {(quiz || []).length}
                       </p>
                       <button
-                        onClick={() => { setShowResults(false); setUserAnswers({}); handleLoadMoreQuiz(); }}
-                        className="text-[12px] font-black text-sky-400 uppercase tracking-[3px] hover:text-white transition-colors py-3 border border-sky-500/30 rounded-xl bg-sky-500/5 hover:bg-sky-500/20"
+                        onClick={() => { setShowResults(false); setUserAnswers({}); setCurrentQuizStep(0); handleLoadMoreQuiz(); }}
+                        className="w-full py-4 text-[11px] font-black text-white uppercase tracking-[3px] transition-all border border-sky-500/30 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20"
                       >
-                        Retrain & Load New Questions
+                        Retrain & Refresh Data Node
                       </button>
                     </div>
                   )}
@@ -504,11 +505,11 @@ function NewsContent() {
                         setAnalyzingFull(false);
                       }
                     }}
-                    className="group relative px-10 py-5 bg-sky-600 hover:bg-sky-500 text-white rounded-[24px] font-black text-[14px] md:text-[16px] uppercase tracking-[3px] md:tracking-[4px] transition-all shadow-xl shadow-sky-600/30"
+                    className="w-full sm:w-auto group relative px-8 sm:px-10 py-5 bg-sky-600 hover:bg-sky-500 text-white rounded-[20px] sm:rounded-[24px] font-black text-[13px] sm:text-[14px] md:text-[16px] uppercase tracking-[2px] sm:tracking-[3px] md:tracking-[4px] transition-all shadow-xl shadow-sky-600/30"
                   >
                     Initialize Test
                   </button>
-                  {fullTestError && <p className="text-red-400 mt-12 text-[15px] font-black bg-red-950/30 p-6 rounded-[32px] border-2 border-red-900/50">{fullTestError}</p>}
+                  {fullTestError && <p className="text-red-400 mt-12 text-[13px] sm:text-[15px] font-black bg-red-950/30 p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] border-2 border-red-900/50">{fullTestError}</p>}
                 </div>
               )}
 
@@ -541,11 +542,13 @@ function NewsContent() {
                     )}
                   </div>
 
-                  <div className="space-y-24 pb-32">
-                    {fullQuiz.map((q, qIdx) => {
+                  <div className="space-y-4 pb-32">
+                    {(() => {
+                      const q = fullQuiz[currentFullTestStep];
+                      const qIdx = currentFullTestStep;
                       const accent = MODAL_ACCENTS[qIdx % MODAL_ACCENTS.length];
                       return (
-                        <div key={qIdx} className="group animate-fade-up">
+                        <div className="group animate-fade-up">
                           <div className="flex items-start gap-3 md:gap-4 mb-4">
                             <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg bg-slate-950 border flex items-center justify-center font-black text-[13px] md:text-[15px] flex-shrink-0 transition-all duration-500 ${accent.border} ${accent.text}`}>
                               {qIdx + 1}
@@ -589,7 +592,7 @@ function NewsContent() {
                           )}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
 
                   {!showFullResults ? (
@@ -600,23 +603,55 @@ function NewsContent() {
                       </div>
                       <button
                         onClick={() => {
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                          setShowFullResults(true);
+                          if (currentFullTestStep + 1 < (fullQuiz || []).length) {
+                            setCurrentFullTestStep(c => c + 1);
+                          } else {
+                            setShowFullResults(true);
+                          }
                         }}
-                        className="w-full sm:w-auto px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[2px] transition-all"
-                        suppressHydrationWarning
+                        className="w-full sm:w-auto px-10 py-5 rounded-2xl font-black uppercase tracking-[2px] text-[11px] text-slate-500 border-2 border-slate-800 bg-transparent hover:border-slate-600 hover:text-white transition-all flex items-center justify-center gap-3 group"
                       >
-                        Grade Mission
+                        <Forward size={16} className="opacity-50 group-hover:translate-x-1 transition-transform" />
+                        Skip Node
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (currentFullTestStep + 1 < (fullQuiz || []).length) {
+                            setCurrentFullTestStep(c => c + 1);
+                          } else {
+                            setShowFullResults(true);
+                          }
+                        }}
+                        disabled={fullTestAnswers[currentFullTestStep] === undefined}
+                        className="w-full sm:w-auto px-12 py-5 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl font-black text-[13px] uppercase tracking-[2px] transition-all shadow-2xl flex items-center justify-center gap-3 group disabled:opacity-30 disabled:cursor-not-allowed border-none"
+                      >
+                        {currentFullTestStep + 1 < (fullQuiz || []).length ? "Next Node" : "Finalize Mission"}
+                        <ChevronRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
                       </button>
                     </div>
                   ) : (
-                    <div className="pb-40 text-center">
-                      <button
-                        onClick={() => setShowFullTestModal(false)}
-                        className="px-16 py-6 bg-slate-950 border-2 border-sky-600 text-white rounded-[32px] font-black text-[16px] uppercase tracking-[6px] hover:bg-slate-900 transition-all"
-                      >
-                        Return to Hub
-                      </button>
+                    <div className="mt-12 text-center p-16 border border-slate-800 rounded-[64px] bg-slate-950 shadow-[0_50px_100px_rgba(0,0,0,0.5)] relative overflow-hidden animate-fade-up px-8">
+                      <div className="absolute inset-0 bg-sky-600/5 blur-[120px] rounded-full pointer-events-none" />
+                      <div className="text-slate-500 font-black text-[10px] uppercase tracking-[8px] mb-8">Assessment Finalized</div>
+                      <p className="text-7xl font-black text-white tracking-tighter mb-12">
+                        <span className="text-sky-500">{Object.keys(fullTestAnswers).filter(k => fullTestAnswers[parseInt(k)] === (fullQuiz || [])[parseInt(k)].correctAnswer).length}</span>
+                        <span className="text-slate-800 mx-4">/</span>
+                        {(fullQuiz || []).length}
+                      </p>
+                      <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
+                        <button
+                          onClick={() => { setShowFullResults(false); setFullTestAnswers({}); setCurrentFullTestStep(0); }}
+                          className="w-full sm:w-auto px-12 py-5 rounded-2xl border border-slate-700 text-slate-400 font-black text-[11px] uppercase tracking-widest hover:border-sky-500 hover:text-white transition-all shadow-xl"
+                        >
+                          Restart Sequence
+                        </button>
+                        <button
+                          onClick={() => setShowFullTestModal(false)}
+                          className="w-full sm:w-auto px-12 py-5 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black text-[11px] uppercase tracking-widest transition-all shadow-xl"
+                        >
+                          Return to Terminal
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -626,119 +661,17 @@ function NewsContent() {
         </div>
       )}
 
-      {/* FLOATING CHAT WIDGET */}
-      <button
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-sky-600 hover:bg-sky-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-sky-600/30 z-[110] transition-all group scale-in"
-      >
-        {isChatOpen ? <X size={24} /> : <MessageCircle size={24} className="group-hover:scale-110 transition-transform" />}
-      </button>
 
-      {isChatOpen && (
-        <div className="fixed bottom-24 right-6 w-[380px] h-[550px] max-h-[75vh] bg-slate-900 border border-slate-700/50 rounded-[32px] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-[110] flex flex-col overflow-hidden animate-fade-up backdrop-blur-3xl ring-1 ring-white/5">
-          {/* PROFESSIONAL HEADER */}
-          <div className="p-6 pb-4 border-b border-white/5 bg-gradient-to-br from-sky-600/10 to-transparent flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-xl shadow-sky-600/30">
-                  <Sparkles size={20} />
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-900 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-white font-black text-[14px] uppercase tracking-[2px]">Neural Node</h4>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                  <p className="text-sky-400/60 text-[9px] font-black uppercase tracking-widest">Active Intelligence</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* TOPIC SELECTION ROW */}
-          <div className="px-6 py-4 bg-slate-900/40 border-b border-white/5">
-            <p className="text-slate-500 font-black text-[8.5px] uppercase tracking-[2px] mb-3">Topic Context</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: "Briefing", cmd: "Summarize today's news briefly.", color: "sky" },
-                { label: "Banking", cmd: "Quiz me on today's Banking & Finance intelligence.", color: "blue" },
-                { label: "Economy", cmd: "Quiz me on today's Economy & GDP intelligence.", color: "emerald" },
-                { label: "National", cmd: "Quiz me on today's National & Govt Affairs intelligence.", color: "purple" }
-              ].map(t => (
-                <button
-                  key={t.label}
-                  onClick={() => handleChat(t.cmd)}
-                  className={`px-3 py-1.5 rounded-lg bg-${t.color}-500/10 border border-${t.color}-500/20 text-${t.color}-400 text-[9px] font-black uppercase tracking-wider hover:bg-${t.color}-600 hover:text-white transition-all`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* CHAT AREA */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-            {chatHistory.length === 0 ? (
-              <div className="text-center py-12 animate-fade-in">
-                <div className="w-16 h-16 bg-slate-800/40 border border-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                  <Brain className="text-sky-500" size={32} />
-                </div>
-                <h5 className="text-white font-black text-[18px] mb-3 tracking-tighter">Mission Readiness</h5>
-                <p className="text-slate-500 text-[13px] font-medium leading-relaxed max-w-[240px] mx-auto">Instant language assessment for the intelligence dossier.</p>
-              </div>
-            ) : (
-              chatHistory.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-up`}>
-                  <div className={`max-w-[92%] p-4 rounded-2xl text-[13.5px] leading-relaxed shadow-lg ${m.role === 'user'
-                    ? 'bg-sky-600 text-white rounded-br-none shadow-sky-600/10'
-                    : 'bg-slate-800/50 text-slate-200 border border-white/5 rounded-bl-none'
-                    }`}>
-                    <div className="chat-markdown">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-            {chatLoading && (
-              <div className="flex justify-start animate-pulse">
-                <div className="bg-slate-800/30 p-6 rounded-[32px] border border-white/5 flex gap-3">
-                  <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce delay-100" />
-                  <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce delay-200" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* INPUT AREA */}
-          <div className="p-6 border-t border-white/5 bg-slate-950/40">
-            <div className="relative flex items-center group">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleChat()}
-                placeholder="Tactical Query..."
-                className="w-full bg-slate-900 border-2 border-white/5 focus:border-sky-500/30 rounded-2xl py-4 px-6 pr-16 text-[13.5px] text-white outline-none transition-all placeholder:text-slate-600 font-bold"
-              />
-              <button
-                onClick={() => handleChat()}
-                className="absolute right-3 w-10 h-10 bg-sky-600 hover:bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-xl transition-all scale-90 group-focus-within:scale-100"
-              >
-                <Send size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
 
 export default function NewsPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center"><Loader2 className="animate-spin inline-block mr-2" /> Loading Terminal...</div>}>
+    <Suspense fallback={<div className="p-20 text-center bg-slate-950 min-h-screen flex flex-col items-center justify-center">
+      <Loader2 className="animate-spin text-sky-500 mb-4" size={48} />
+      <p className="text-sky-500 font-bold uppercase tracking-[4px] animate-pulse">Syncing Strategic Nodes...</p>
+    </div>}>
       <NewsContent />
     </Suspense>
   );

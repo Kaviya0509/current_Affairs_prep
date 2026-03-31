@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { callGroqAPI } from "@/lib/groq";
 import { fetchLatestNews } from "@/lib/news";
 import { NewsArticle } from "@/types";

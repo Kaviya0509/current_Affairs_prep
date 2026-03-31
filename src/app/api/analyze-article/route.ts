@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { generateArticleKeyPoints, generateQuizFromArticles } from "@/lib/groq";
 import { NewsArticle } from "@/types";
 

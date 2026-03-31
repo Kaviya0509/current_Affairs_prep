@@ -40,18 +40,18 @@ export default function BookmarksPage() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto py-10 animate-fade-up space-y-10">
+    <div className="max-w-6xl mx-auto py-10 animate-fade-up space-y-10 px-6">
       {/* Header */}
-      <header className="flex items-end justify-between border-b border-slate-100 pb-8 px-2">
+      <header className="flex flex-col sm:flex-row items-start sm:items-end justify-between border-b border-slate-100 pb-8 gap-6">
         <div>
-          <h1 className="font-display text-[32px] font-bold text-slate-900 tracking-tight leading-none mb-3">
+          <h1 className="font-display text-[28px] sm:text-[32px] font-bold text-slate-900 tracking-tight leading-none mb-3">
             Knowledge Library
           </h1>
-          <p className="text-[15px] text-slate-500 font-medium">{bookmarks.length} retained intelligence nodes</p>
+          <p className="text-[14px] sm:text-[15px] text-slate-500 font-medium">{bookmarks.length} retained intelligence nodes</p>
         </div>
         <button
           onClick={() => setBookmarks([])}
-          className="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-400 font-bold text-[11px] uppercase tracking-widest hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all active:scale-95"
+          className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-400 font-bold text-[11px] uppercase tracking-widest hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all active:scale-95"
         >
           Purge Library
         </button>

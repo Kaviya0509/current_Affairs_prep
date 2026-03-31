@@ -64,15 +64,15 @@ export default function DownloadsPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto py-16 px-6 space-y-16 animate-fade-up">
-      <header className="border-b-2 border-slate-900 pb-12">
-        <div className="flex items-center gap-6 mb-4">
-           <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xl">
-              <FileDown size={32} />
+    <div className="max-w-7xl mx-auto py-10 md:py-16 px-6 md:px-10 space-y-12 md:space-y-16 animate-fade-up">
+      <header className="border-b-2 border-slate-900 pb-8 md:pb-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-4">
+           <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xl">
+              <FileDown size={24} className="md:w-8 md:h-8" />
            </div>
-           <h1 className="text-[48px] font-black text-slate-900 tracking-tight leading-none">Download Center</h1>
+           <h1 className="text-[32px] md:text-[48px] font-black text-slate-900 tracking-tight leading-none">Download Center</h1>
         </div>
-        <p className="text-[18px] text-slate-500 font-bold tracking-tight">Official AffairsCloud Compilation Repository</p>
+        <p className="text-[14px] md:text-[18px] text-slate-500 font-bold tracking-tight">Official AffairsCloud Compilation Repository</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -83,11 +83,11 @@ export default function DownloadsPage() {
             </div>
             
             <div className="relative z-10">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-10 shadow-xl ${s.color === 'indigo' ? 'bg-indigo-600' : s.color === 'emerald' ? 'bg-emerald-600' : 'bg-slate-900'}`}>
+              <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white mb-8 md:mb-10 shadow-xl ${s.color === 'indigo' ? 'bg-indigo-600' : s.color === 'emerald' ? 'bg-emerald-600' : 'bg-slate-900'}`}>
                  {s.icon}
               </div>
-              <h2 className="text-[26px] font-black text-slate-900 leading-tight mb-4">{s.title}</h2>
-              <p className="text-[15px] text-slate-500 font-bold leading-relaxed mb-10">
+              <h2 className="text-[22px] md:text-[26px] font-black text-slate-900 leading-tight mb-4">{s.title}</h2>
+              <p className="text-[14px] md:text-[15px] text-slate-500 font-bold leading-relaxed mb-8 md:mb-10">
                 {s.description}
               </p>
               <div className="flex flex-wrap gap-3 mb-10">
@@ -117,32 +117,32 @@ export default function DownloadsPage() {
         ))}
       </div>
 
-      <section className="bg-slate-50 rounded-[56px] p-12 border border-slate-100">
-         <div className="flex flex-col md:flex-row gap-12 items-center">
-            <div className="flex-1 space-y-6">
-               <h3 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
+      <section className="bg-slate-50 rounded-[40px] md:rounded-[56px] p-8 md:p-12 border border-slate-100">
+         <div className="flex flex-col lg:flex-row gap-10 md:gap-12 items-center">
+            <div className="flex-1 space-y-6 text-center lg:text-left">
+               <h3 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-4 flex items-center justify-center lg:justify-start gap-2">
                  <Lock size={16} /> Premium Access Tier
                </h3>
-               <p className="text-[32px] font-black text-slate-900 leading-tight">
-                  Unlock Personalized <br /> Study Portfolios.
+               <p className="text-[26px] md:text-[32px] font-black text-slate-900 leading-tight">
+                  Unlock Personalized <br className="hidden md:block" /> Study Portfolios.
                </p>
-               <p className="text-[16px] text-slate-600 font-bold leading-relaxed max-w-lg">
+               <p className="text-[14px] md:text-[16px] text-slate-600 font-bold leading-relaxed max-w-lg mx-auto lg:mx-0">
                   Authenticated users can access historical intelligence nodes and create custom PDF dossiers based on bookmarks and practice metrics.
                </p>
                <div className="pt-4">
-                  <a href="/signup" className="inline-flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl">
+                  <a href="/signup" className="inline-flex items-center gap-3 px-8 md:px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl">
                      Initialize Account <CheckCircle2 size={18} />
                   </a>
                </div>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-6">
-               <div className="p-8 bg-white rounded-[40px] border border-slate-200">
-                  <p className="text-[32px] font-black text-slate-900">48+</p>
-                  <p className="text-[12px] text-slate-400 font-black uppercase tracking-widest">Active Data Nodes</p>
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mt-8 lg:mt-0">
+               <div className="p-8 bg-white rounded-[32px] md:rounded-[40px] border border-slate-200 text-center lg:text-left">
+                  <p className="text-[28px] md:text-[32px] font-black text-slate-900">48+</p>
+                  <p className="text-[11px] md:text-[12px] text-slate-400 font-black uppercase tracking-widest">Active Data Nodes</p>
                </div>
-               <div className="p-8 bg-white rounded-[40px] border border-slate-200">
-                  <p className="text-[32px] font-black text-slate-900">92%</p>
-                  <p className="text-[12px] text-slate-400 font-black uppercase tracking-widest">Accuracy Ratio</p>
+               <div className="p-8 bg-white rounded-[32px] md:rounded-[40px] border border-slate-200 text-center lg:text-left">
+                  <p className="text-[28px] md:text-[32px] font-black text-slate-900">92%</p>
+                  <p className="text-[11px] md:text-[12px] text-slate-400 font-black uppercase tracking-widest">Accuracy Ratio</p>
                </div>
             </div>
          </div>

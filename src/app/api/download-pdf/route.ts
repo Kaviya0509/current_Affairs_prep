@@ -15,11 +15,12 @@ export async function GET(req: NextRequest) {
     ? `${new Date(now.getTime() - 7 * 86400000).toLocaleDateString('en-IN')} – ${now.toLocaleDateString('en-IN')}`
     : `${new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-IN')} – ${now.toLocaleDateString('en-IN')}`;
 
+  // @ts-ignore
   const buffer = await renderToBuffer(
-    React.createElement(CurrentAffairsPDF, { articles, type, dateRange })
+    React.createElement(CurrentAffairsPDF, { articles, type, dateRange }) as any
   );
 
-  return new NextResponse(buffer, {
+  return new NextResponse(buffer as any, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="current-affairs-${type.toLowerCase()}-${now.toISOString().slice(0, 10)}.pdf"`,

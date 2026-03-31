@@ -50,16 +50,20 @@ export function DigestSkeleton() {
 }
 export function QuizSkeleton() {
   return (
-    <div className="glass-card rounded-2xl p-6 space-y-6">
-      <div className="space-y-2">
+    <div className="glass-card rounded-[32px] p-8 space-y-8 animate-pulse border border-slate-100">
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-4 w-32" />
         <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-6 w-full" />
-        <Skeleton className="h-6 w-5/6" />
       </div>
-      <div className="grid grid-cols-1 gap-3">
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-14 w-full" />
-        ))}
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+      </div>
+      <div className="flex gap-4 pt-6">
+        <Skeleton className="h-14 w-40 rounded-2xl" />
+        <div className="flex-1" />
+        <Skeleton className="h-14 w-48 rounded-2xl" />
       </div>
     </div>
   );

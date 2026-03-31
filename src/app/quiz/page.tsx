@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { QuizQuestion, NewsCategory } from "@/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { ChevronRight, Forward, X, Brain, Target, Zap, Clock, ShieldCheck } from "lucide-react";
+import { QuizSkeleton } from "@/components/ui/Skeleton";
 
 type Phase = "setup" | "active" | "result";
 
@@ -20,7 +22,7 @@ function QuizContent() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<{ correct: boolean; selected: number }[]>([]);
+  const [answers, setAnswers] = useState<{ correct: boolean; selected: number; skipped?: boolean }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,10 +43,20 @@ function QuizContent() {
     }
   }
 
+  function skip() {
+    setAnswers((p) => [...p, { correct: false, selected: -1, skipped: true }]);
+    if (current + 1 >= questions.length) {
+      setPhase("result");
+    } else {
+      setCurrent((c) => c + 1);
+      setSelected(null);
+    }
+  }
+
   function next() {
     if (selected === null) return;
     const isCorrect = selected === questions[current].correctAnswer;
-    setAnswers((p) => [...p, { correct: isCorrect, selected }]);
+    setAnswers((p) => [...p, { correct: isCorrect, selected, skipped: false }]);
     if (current + 1 >= questions.length) {
       setPhase("result");
     } else {
@@ -58,40 +70,40 @@ function QuizContent() {
 
   // ── Setup ──
   if (phase === "setup") return (
-    <div className="max-w-xl mx-auto py-12 animate-fade-up">
+    <div className="max-w-xl mx-auto py-12 animate-fade-up px-4 md:px-6 relative">
       <div className="text-center mb-10">
-        <h1 className="font-display text-[32px] font-bold text-slate-900 mb-2">AI Assessment Hub</h1>
-        <p className="text-[14px] text-slate-500 font-medium">Generate custom mock tests using live AffairsCloud intelligence</p>
+        <h1 className="font-display text-[28px] md:text-[32px] font-bold text-slate-900 mb-2 leading-tight">AI Assessment Hub</h1>
+        <p className="text-[13px] md:text-[14px] text-slate-500 font-medium">Generate custom mock tests using live AffairsCloud intelligence</p>
       </div>
 
-      <div className="rounded-[24px] p-8 space-y-8 glass-card">
+      <div className="rounded-[24px] p-6 md:p-8 space-y-8 glass-card border border-slate-200 shadow-xl relative">
+        <Link href="/" className="absolute top-4 right-4 w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all z-10">
+          <span className="text-xl">×</span>
+        </Link>
         <div className="space-y-4">
-          <label className="block text-[12px] font-bold text-slate-400 uppercase tracking-widest pl-1">Exam Type Focus</label>
-          <div className="grid grid-cols-4 gap-2">
+          <label className="block text-[11px] md:text-[12px] font-bold text-slate-400 uppercase tracking-widest pl-1">Exam Type Focus</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
             {["Banking", "SSC", "UPSC", "TNPSC"].map((e) => (
               <button
                 key={e}
                 onClick={() => setExam(e as any)}
-                className="py-3 rounded-xl text-[12px] font-bold border transition-all active:scale-95 shadow-sm"
-                style={
-                  exam === e
-                    ? { background: "#0f172a", color: "#fff", borderColor: "#0f172a" }
-                    : { background: "#fff", color: "#64748b", borderColor: "#e2e8f0" }
-                }
+                className={`group relative py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest border-2 transition-all active:scale-95 overflow-hidden
+                  ${exam === e ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-200" : "bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:text-slate-600"}`}
               >
-                {e}
+                <span className="relative z-10">{e}</span>
+                {exam === e && <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400" />}
               </button>
             ))}
           </div>
         </div>
         <div className="space-y-4">
-          <label className="block text-[12px] font-bold text-slate-400 uppercase tracking-widest pl-1">Category Focus</label>
-          <div className="grid grid-cols-2 gap-3">
+          <label className="block text-[11px] md:text-[12px] font-bold text-slate-400 uppercase tracking-widest pl-1">Category Focus</label>
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
             {["economy", "banking", "general", "international"].map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c as any)}
-                className="py-3.5 rounded-xl text-[13px] font-bold capitalize border transition-all active:scale-95 shadow-sm"
+                className="py-3 px-2 rounded-xl text-[12px] md:text-[13px] font-bold capitalize border transition-all active:scale-95 shadow-sm truncate"
                 style={
                   category === c
                     ? { background: "#0f172a", color: "#fff", borderColor: "#0f172a" }
@@ -274,15 +286,36 @@ function QuizContent() {
                   </p>
                   <p className="text-[15.5px] leading-relaxed font-medium text-slate-100">{q.explanation}</p>
                 </div>
-                <button
-                  onClick={next}
-                  className="w-full h-16 rounded-2xl font-black bg-white border border-slate-200 text-slate-900 text-[15px] uppercase tracking-widest hover:border-slate-900 hover:bg-slate-50 shadow-xl shadow-slate-200/50 active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                  {current === questions.length - 1 ? "Finalize Terminal Report" : "Proceed to Next Node"} 
-                  <span className="text-xl">→</span>
-                </button>
               </div>
             )}
+
+            <div className="mt-12 flex flex-col md:flex-row items-center gap-5">
+              <button
+                onClick={skip}
+                disabled={selected !== null}
+                className={`w-full md:w-auto px-10 h-16 rounded-[22px] font-black border-2 transition-all flex items-center justify-center gap-3 text-[12px] uppercase tracking-[0.2em] relative overflow-hidden group
+                  ${selected !== null ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-900 hover:text-slate-900 hover:bg-slate-50 shadow-lg active:scale-95'}`}
+              >
+                <Forward size={16} className={`transition-transform group-hover:translate-x-1 ${selected !== null ? 'opacity-20' : 'opacity-70'}`} />
+                Skip Intelligence Node
+              </button>
+              
+              <div className="flex-1 w-full h-[2px] bg-slate-100 hidden md:block opacity-50" />
+
+              <button
+                onClick={next}
+                disabled={selected === null}
+                className={`w-full md:w-auto px-12 h-16 rounded-[22px] font-black transition-all flex items-center justify-center gap-4 text-[13px] uppercase tracking-[0.3em] shadow-2xl relative group
+                  ${selected === null ? 'bg-slate-100 text-slate-300 border-2 border-slate-200 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/20 active:scale-95 border-none'}`}
+              >
+                {current === questions.length - 1 ? "Finalize Assessment" : "Proceed to Next Node"} 
+                <ChevronRight size={20} className="transition-transform group-hover:translate-x-1.5" />
+                {selected !== null && (
+                   <span className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </button>
+            </div>
+
           </div>
         </div>
       </div>

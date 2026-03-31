@@ -1,5 +1,6 @@
 // src/app/api/quiz/route.ts
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { fetchLatestNews } from "@/lib/news";
 import { generateQuizFromArticles } from "@/lib/groq";
 import { NewsCategory } from "@/types";
