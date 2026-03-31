@@ -62,6 +62,11 @@ export const CATEGORY_CONFIG: Record<string, { label: string; emoji: string }> =
   general: { label: "General News", emoji: "📋" },
 };
 
+export const CATEGORY_LABELS: Record<string, string> = Object.entries(CATEGORY_CONFIG).reduce((acc, [key, val]) => ({
+  ...acc,
+  [key]: val.label
+}), {});
+
 export function timeAgo(date: string | Date): string {
   const now = new Date();
   const then = new Date(date);

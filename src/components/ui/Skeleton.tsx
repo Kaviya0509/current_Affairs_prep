@@ -48,3 +48,19 @@ export function DigestSkeleton() {
     </div>
   );
 }
+export function QuizSkeleton() {
+  return (
+    <div className="glass-card rounded-2xl p-6 space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-6 w-5/6" />
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-14 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
